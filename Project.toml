@@ -3,6 +3,12 @@ uuid = "99977979-b085-4ef1-bf27-0f203366d47f"
 authors = ["James Gardner <james.gardner1421@gmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+JuLIP = "945c410c-986d-556a-acb1-167a618e0462"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
 [compat]
 julia = "1"
 
