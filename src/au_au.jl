@@ -10,8 +10,7 @@ function JuLIP.evaluate!(tmp, ::AuAu, Rs, Zs, z0)
     if z0 == 79 # Ensure current site is gold atom
         slice = (Zs .== 79) # Identify gold atoms
         AuRs = @view Rs[slice] # Slice gold atoms
-        # neighbours = partialsort!(AuRs, 1:12, by=x->norm(x)) # Find 12 closest neighbors
-        I = partialsortperm(AuRs, 1:12, by=x->norm(x)) # Find 12 closest neighbors
+        I = get_nearest_neighbours(AuRs)
         for R in @view AuRs[I]
             i = select_orientation_index(R)
             R -= direction_vectors[i]
@@ -26,7 +25,7 @@ function JuLIP.evaluate_d!(dEs, tmp, ::AuAu, Rs, Zs, z0)
     if z0 == 79 # Ensure current site is gold atom
         slice = (Zs .== 79) # Identify gold atoms
         AuRs = @view Rs[slice] # Slice gold atoms
-        I = partialsortperm(AuRs, 1:12, by=x->norm(x)) # Find 12 closest neighbors
+        I = get_nearest_neighbours(AuRs)
         for i in 1:length(dEs)
             dEs[i] = zero(dEs[i])
         end
@@ -40,6 +39,15 @@ function JuLIP.evaluate_d!(dEs, tmp, ::AuAu, Rs, Zs, z0)
     return dEs
 end
 
+function get_nearest_neighbours(AuRs)
+    if length(AuRs) >= 12
+        I = partialsortperm(AuRs, 1:12, by=x->norm(x))
+    else
+        I = partialsortperm(AuRs, 1:9, by=x->norm(x))
+    end
+    return I
+end
+
 """
 Identifies which force tensor is to be used based on symmetry considerations.
 
@@ -50,4 +58,3 @@ function select_orientation_index(vec)
     _, index = findmax(dot.(Ref(vec), direction_vectors))
     return index
 end
-

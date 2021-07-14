@@ -1,6 +1,6 @@
 using Unitful
 
-energy_unit = u"kJ/mol" / Unitful.Na
+const energy_unit = u"kJ/mol" / Unitful.Na
 
 # Energies converted to eV, distances in Angstrom, forces in eV/Angstrom.
 

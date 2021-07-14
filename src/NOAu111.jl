@@ -4,115 +4,102 @@ import JuLIP
 import JuLIP.Potentials: z2i, ZList
 using StaticArrays
 using LinearAlgebra
+using DataStructures: DefaultDict
+using NonadiabaticDynamicsBase
+using NonadiabaticModels
 
 export H00
 export H11
 export H01
 
+export NOAu
+
 include("parameters.jl")
 include("au_au.jl")
+include("diabatic_elements.jl")
 
-repulsive(A, α, r_cut) = JuLIP.@analytic r -> A * (exp(-α*r) - exp(-α*r_cut))
-morse(F, γ, r₀) = JuLIP.@analytic r -> F*(1 - exp(-γ * (r - r₀)))^2
-image(D, C, zimage) = JuLIP.@analytic z -> -D / sqrt(C^2 + (z-zimage)^2)
-coupling(A2, A3, γ, r_cut) = JuLIP.@analytic r -> -A2*(1/(1+A3*exp(γ*r)) - 1/(1+A3*exp(γ*r_cut)))
-
-abstract type ComponentSitePotential <: JuLIP.SitePotential end
-abstract type CompoundPotential <: JuLIP.SitePotential end
-
-CustomPotential = Union{ComponentSitePotential, CompoundPotential}
-
-function JuLIP.energy(V::CompoundPotential, at::JuLIP.AbstractAtoms; kwargs...) 
-   tmp = [JuLIP.alloc_temp(V, at) for i in 1:JuLIP.nthreads()]
-   return JuLIP.energy!(tmp, V, at; kwargs...) + extra_potential(V, at)
+struct NOAu{V1,V2,V3,V4,V5,A} <: DiabaticModel
+    n_states::Int
+    H00::V1
+    H11::V2
+    H01::V3
+    AuAu::V4
+    image_potential::V5
+    atoms::A
 end
 
-JuLIP.cutoff(V::CustomPotential) = V.cutoff
+NOAu(jatoms) = NOAu(2, H00(), H11(), H01(), AuAu(), image(D, C, zimage), jatoms)
 
-sortkey(i, j) = i < j ? (i,j) : (j,i)
-
-struct H00{V,Z,T} <: ComponentSitePotential
-    potentials::V
-    zlist::Z
-    cutoff::T
+function NOAu(atoms::NonadiabaticDynamicsBase.Atoms{N,T}, cell) where {N,T}
+    jatoms = JuLIP.Atoms{T}(
+        X=zeros(3,length(atoms)),
+        M=au_to_u.(atoms.masses),
+        Z=JuLIP.AtomicNumber.(atoms.numbers),
+        cell=au_to_ang.(cell.vectors'),
+        pbc=cell.periodicity
+        )
+    NOAu(jatoms)
 end
 
-function H00()
-    cutoff = rcutoff
+function NonadiabaticModels.potential(model::NOAu, R::AbstractMatrix)
 
-    V00AuO = repulsive(A₀, α₀, cutoff)
-    V00AuN = repulsive(B₀, β₀, cutoff)
-    V00NO = morse(F₀, γ₀, r₀NO)
+    JuLIP.set_positions!(model.atoms, au_to_ang.(R))
+    Au = eV_to_au(JuLIP.energy(model.AuAu, model.atoms))
+    V11 = eV_to_au(JuLIP.energy(model.H00, model.atoms)) + Au
+    V22 = eV_to_au(JuLIP.energy(model.H11, model.atoms) + ϕ - Eₐ) + Au
+    V12 = eV_to_au(JuLIP.energy(model.H01, model.atoms))
 
-    potentials = Dict((1,3)=>V00AuO, (1,2)=>V00AuN, (2,3)=>V00NO)
-    zlist = JuLIP.Potentials.ZList([:Au, :N, :O])
+    V22 += eV_to_au(evaluate_image_potential(model))
 
-    H00(potentials, zlist, cutoff)
+    return Hermitian(SMatrix{2,2}(V11, V12, V12, V22))
 end
 
-function evaluate_potential(V::CustomPotential, i, j, R)
-    key = sortkey(i, j)
-    if haskey(V.potentials, key)
-        return V.potentials[key](R)
-    else
-        return 0.0
+function NonadiabaticModels.derivative!(model::NOAu, D::AbstractMatrix{<:Hermitian}, R::AbstractMatrix)
+
+    JuLIP.set_positions!(model.atoms, au_to_ang.(R))
+    Au = -JuLIP.forces(model.AuAu, model.atoms)
+    D11 = -JuLIP.forces(model.H00, model.atoms) + Au
+    D22 = -JuLIP.forces(model.H11, model.atoms) + Au
+    D12 = -JuLIP.forces(model.H01, model.atoms)
+
+    Oderiv, Nderiv = evaluate_image_derivative(model)
+    Nindex = findfirst(isequal(7), model.atoms.Z)
+    Oindex = findfirst(isequal(8), model.atoms.Z)
+    D22[Nindex] += SVector{3}(0, 0, Nderiv)
+    D22[Oindex] += SVector{3}(0, 0, Oderiv)
+
+    for i=1:length(model.atoms)
+        for j=1:3
+            d11 = eV_per_ang_to_au(D11[i][j])
+            d12 = eV_per_ang_to_au(D12[i][j])
+            d22 = eV_per_ang_to_au(D22[i][j])
+            D[j,i] = Hermitian(SMatrix{2,2}(d11, d12, d12, d22))
+        end
     end
+
+    return D
 end
 
-function JuLIP.evaluate!(tmp, V::CustomPotential, Rs, Zs, z0)
-    Es = 0.0
-    i0 = JuLIP.z2i(V, z0)
-    for (R, Z) in zip(Rs, Zs)
-        i = JuLIP.z2i(V, Z)
-        Es += evaluate_potential(V, i0, i, R)
-    end
-    return Es / 2
+function evaluate_image_potential(model::NOAu)
+    at = model.atoms
+    Nindex = findfirst(isequal(7), at.Z)
+    Oindex = findfirst(isequal(8), at.Z)
+    total_mass = at.M[Oindex] + at.M[Nindex]
+    zcom = (at[Oindex][3]*at.M[Oindex]+at[Nindex][3]*at.M[Nindex]) / total_mass
+    image = JuLIP.evaluate(model.image_potential, zcom)
+    return image
 end
 
-struct H11{V,I,Z,T} <: CompoundPotential
-    potentials::V
-    V11image::I
-    ϕ::T
-    Eₐ::T
-    zlist::Z
-    cutoff::T
-end
-
-function H11()
-    cutoff = rcutoff
-    V11image = image(D, C, zimage)
-    V11AuO = repulsive(A₁, α₁, cutoff)
-    V11AuN = repulsive(B₁, β₁, cutoff)
-    V11NO = morse(F₁, γ₁, r₁NO)
-
-    potentials = Dict((1,3)=>V11AuO, (1,2)=>V11AuN, (2,3)=>V11NO)
-
-    zlist = JuLIP.Potentials.ZList([:Au, :N, :O])
-    H11(potentials, V11image, ϕ, Eₐ, zlist, cutoff)
-end
-
-function extra_potential(V::H11, at)
-    com = (at[1]*at.M[1]+at[2]*at.M[2]) / (at.M[1]+at.M[2])
-    zcom = com[3]
-    return V.V11image(zcom) + V.ϕ - V.Eₐ
-end
-
-struct H01{V,Z,T} <: ComponentSitePotential
-    potentials::V
-    zlist::Z
-    cutoff::T
-end
-
-function H01()
-    cutoff = rcutoff
-
-    V01AuO = coupling(A₂, A₃, γ₂, cutoff)
-    V01AuN = coupling(B₂, B₃, γ₃, cutoff)
-
-    potentials = Dict((1,3)=>V01AuO, (1,2)=>V01AuN)
-
-    zlist = JuLIP.Potentials.ZList([:Au, :N, :O])
-    H01(potentials, zlist, cutoff)
+function evaluate_image_derivative(model::NOAu)
+    at = model.atoms
+    Nindex = findfirst(isequal(7), at.Z)
+    Oindex = findfirst(isequal(8), at.Z)
+    total_mass = at.M[Oindex] + at.M[Nindex]
+    zcom = (at[Oindex][3]*at.M[Oindex]+at[Nindex][3]*at.M[Nindex]) / total_mass
+    image = JuLIP.evaluate_d(model.image_potential, zcom)
+    Oderiv = image * at.M[Oindex] / (total_mass)
+    Nderiv = image * at.M[Nindex] / (total_mass)
+    return Oderiv, Nderiv
 end
 
 end
