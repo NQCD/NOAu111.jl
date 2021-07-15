@@ -25,10 +25,9 @@ end
 
 @testset "Final model" begin
     R = ang_to_au.(Matrix(hcat(at.X...)))
-    atoms = NonadiabaticDynamicsBase.Atoms(chemical_symbols(at))
     c = PeriodicCell(ang_to_au.(cell(at)'))
 
-    model = NOAu(atoms, c)
+    model = NOAu(chemical_symbols(at), c)
 
     @test JuLIP.Testing.fdtest(x->potential(model, x), x->derivative(model, x), R, verbose=false)
 end
