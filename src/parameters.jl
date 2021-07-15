@@ -24,13 +24,13 @@ const F₁ = ustrip(uconvert(u"eV", 495.98 * energy_unit))
 const γ₁ = 2.4890
 const r₁NO = 1.2904
 const ϕ = ustrip(uconvert(u"eV", 511.37 * energy_unit))
-const Eₐ = ustrip(uconvert(u"eV", 0.67540 * energy_unit))
+const Eₐ = ustrip(uconvert(u"eV", -0.67540 * energy_unit))
 
 const A₂ = ustrip(uconvert(u"eV", 11.842 * energy_unit))
-const A₃ = ustrip(uconvert(u"eV", 0.0061803 * energy_unit))
+const A₃ = 0.0061803
 const γ₂ = 1.3693
-const B₂ = ustrip(uconvert(u"eV", 51.000 * energy_unit))
-const B₃ = ustrip(uconvert(u"eV", 0.0047213 * energy_unit))
+const B₂ = ustrip(uconvert(u"eV", 50 * energy_unit))
+const B₃ = 0.0047213
 const γ₃ = 2.0194
 
 const α = ustrip(uconvert(u"eV*Å^-2", -4.94u"N/m"))
