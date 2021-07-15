@@ -1,6 +1,4 @@
 
-export AuAu
-
 struct AuAu <: JuLIP.SitePotential end
 
 JuLIP.cutoff(::AuAu) = JuLIP.lattice_constant(:Au)

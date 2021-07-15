@@ -3,14 +3,10 @@ module NOAu111
 import JuLIP
 import JuLIP.Potentials: z2i, ZList
 using StaticArrays
-using LinearAlgebra
+using LinearAlgebra: norm, Hermitian, dot
 using DataStructures: DefaultDict
 using NonadiabaticDynamicsBase
 using NonadiabaticModels
-
-export H00
-export H11
-export H01
 
 export NOAu
 
