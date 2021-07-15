@@ -26,11 +26,11 @@ end
 
 NOAu(jatoms) = NOAu(2, H00(), H11(), H01(), AuAu(), image(D, C, zimage), jatoms)
 
-function NOAu(atoms::NonadiabaticDynamicsBase.Atoms{N,T}, cell) where {N,T}
-    jatoms = JuLIP.Atoms{T}(
-        X=zeros(3,length(atoms)),
-        M=au_to_u.(atoms.masses),
-        Z=JuLIP.AtomicNumber.(atoms.numbers),
+function NOAu(symbols::AbstractVector{Symbol}, cell)
+    jatoms = JuLIP.Atoms(
+        X=zeros(3,length(symbols)),
+        M=JuLIP.atomic_mass.(symbols),
+        Z=JuLIP.atomic_number.(symbols),
         cell=au_to_ang.(cell.vectors'),
         pbc=cell.periodicity
         )
