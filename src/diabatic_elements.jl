@@ -4,6 +4,11 @@ morse(F, γ, r₀) = JuLIP.@analytic r -> F*(1 - exp(-γ * (r - r₀)))^2
 coupling(A2, A3, γ, r_cut) = JuLIP.@analytic r -> -A2*(1/(1+A3*exp(γ*r)) - 1/(1+A3*exp(γ*r_cut)))
 const zero_potential = JuLIP.@analytic r -> 0
 
+function repulsiveAuN(A, α, r₀, cosθ, r_cut)
+    JuLIP.@analytic(
+        r -> A*(exp(-2α*(r-r₀)) - exp(-2α*(r_cut-r₀)) - 2cosθ^2*(exp(-α*(r-r₀)) - exp(-α*(r_cut-r₀))))
+    )
+end
 image(D, C, zimage) = JuLIP.@analytic z -> -D / sqrt(C^2 + (z-zimage)^2)
 
 struct DiabaticElement{V,Z} <: JuLIP.SitePotential
@@ -47,12 +52,10 @@ end
 function H11()
 
     V11AuO = repulsive(A₁, α₁, rcutoff)
-    V11AuN = repulsive(B₁, β₁, rcutoff)
     V11NO = morse(F₁, γ₁, r₁NO)
 
     potentials = DefaultDict{Tuple, JuLIP.AnalyticFunction}(zero_potential)
     potentials[1,3] = V11AuO
-    potentials[1,2] = V11AuN
     potentials[2,3] = V11NO
 
     DiabaticElement(potentials)
