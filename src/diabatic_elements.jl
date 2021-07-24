@@ -1,15 +1,17 @@
 
-repulsive(A, α, r_cut) = JuLIP.@analytic r -> A * (exp(-α*r) - exp(-α*r_cut))
-morse(F, γ, r₀) = JuLIP.@analytic r -> F*(1 - exp(-γ * (r - r₀)))^2
-coupling(A2, A3, γ, r_cut) = JuLIP.@analytic r -> -A2*(1/(1+A3*exp(γ*r)) - 1/(1+A3*exp(γ*r_cut)))
-const zero_potential = JuLIP.@analytic r -> 0
-
-function repulsiveAuN(A, α, r₀, cosθ, r_cut)
-    JuLIP.@analytic(
-        r -> A*(exp(-2α*(r-r₀)) - exp(-2α*(r_cut-r₀)) - 2cosθ^2*(exp(-α*(r-r₀)) - exp(-α*(r_cut-r₀))))
-    )
+function repulsive(A, α, r_cut)
+    cutoff = exp(-α*r_cut)
+    JuLIP.@analytic r -> A * (exp(-α*r) - cutoff)
 end
+
+morse(F, γ, r₀) = JuLIP.@analytic r -> F*(1 - exp(-γ * (r - r₀)))^2
+const zero_potential = JuLIP.@analytic r -> 0
 image(D, C, zimage) = JuLIP.@analytic z -> -D / sqrt(C^2 + (z-zimage)^2)
+
+function coupling(A2, A3, γ, r_cut)
+    cutoff = 1/(1+A3*exp(γ*r_cut))
+    JuLIP.@analytic r -> -A2*(1/(1+A3*exp(γ*r)) - cutoff)
+end
 
 struct DiabaticElement{V,Z} <: JuLIP.SitePotential
     potentials::V
@@ -49,39 +51,60 @@ function H01()
     DiabaticElement(potentials)
 end
 
-function H11()
-
-    V11AuO = repulsive(A₁, α₁, rcutoff)
-    V11NO = morse(F₁, γ₁, r₁NO)
-
-    potentials = DefaultDict{Tuple, JuLIP.AnalyticFunction}(zero_potential)
-    potentials[1,3] = V11AuO
-    potentials[2,3] = V11NO
-
-    DiabaticElement(potentials)
-end
-
 function JuLIP.evaluate!(tmp, V::DiabaticElement, Rs, Zs, z0)
     Es = 0.0
     i0 = JuLIP.z2i(V, z0)
-    for (R, Z) in zip(Rs, Zs)
-        i = JuLIP.z2i(V, Z)
-        f = select_potential(V, i0, i)
-        r = norm(R)
+
+    # If X == N or O site, calculate X-Au potential
+    if (i0 == 2) || (i0 == 3)
+        for (R, Z) in zip(Rs, Zs)
+            i = JuLIP.z2i(V, Z)
+            if i == 1
+                f = select_potential(V, i0, i)
+                r = norm(R)
+                Es += JuLIP.evaluate!(tmp, f, r)
+            end
+        end
+    end
+
+    # If N site, calculate NO potential
+    if i0 == 2
+        closest = find_closest(Rs, Zs, 8)
+        f = select_potential(V, i0, 3)
+        r = norm(Rs[closest])
         Es += JuLIP.evaluate!(tmp, f, r)
     end
-    return Es / 2
+
+    return Es
 end
 
 function JuLIP.evaluate_d!(dEs, tmp, V::DiabaticElement, Rs, Zs, z0)
     i0 = JuLIP.z2i(V, z0)
-    for (j, (R, Z)) in enumerate(zip(Rs, Zs))
-        i = JuLIP.z2i(V, Z)
-        f = select_potential(V, i0, i)
-        r = norm(R)
-        R̂ = R / r
-        dEs[j] = JuLIP.evaluate_d(f, r) * R̂ / 2
+
+    for i=1:length(dEs)
+        dEs[i] = zero(dEs[i])
     end
+
+    if (i0 == 2) || (i0 == 3)
+        for (j, (R, Z)) in enumerate(zip(Rs, Zs))
+            i = JuLIP.z2i(V, Z)
+            if i == 1
+                f = select_potential(V, i0, i)
+                r = norm(R)
+                R̂ = R / r
+                dEs[j] = JuLIP.evaluate_d(f, r) * R̂
+            end
+        end
+    end
+
+    if i0 == 2
+        closest = find_closest(Rs, Zs, 8)
+        f = select_potential(V, i0, 3)
+        r = norm(Rs[closest])
+        R̂ = Rs[closest] / r
+        dEs[closest] = JuLIP.evaluate_d(f, r) * R̂
+    end
+
     return dEs
 end
 
