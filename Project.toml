@@ -10,7 +10,9 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NonadiabaticDynamicsBase = "78c76ebc-5665-4934-b512-82d81b5cbfb7"
 NonadiabaticModels = "c814dc9f-a51f-4eaf-877f-82eda4edad48"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 julia = "1"
@@ -19,6 +21,7 @@ julia = "1"
 ASE = "51974c44-a7ed-5088-b8be-3e78c8ba416c"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+UnitfulAtomic = "a7773ee8-282e-5fa2-be4e-bd808c38a91a"
 
 [targets]
-test = ["Test", "PyCall", "ASE"]
+test = ["Test", "PyCall", "ASE", "UnitfulAtomic"]
