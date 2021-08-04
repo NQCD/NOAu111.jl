@@ -15,6 +15,12 @@ jobs:
           version = "2"
           Pkg.add(; name, uuid, version)
         shell: julia --color=yes {0}
+
+      - name: Add NQCDRegistry
+        run: julia -e 'using Pkg; Pkg.Registry.add(RegistrySpec(url="https://github.com/NQCD/NQCDRegistry"))'
+      - name: Add JuliaMolSim registry
+        run: julia -e 'using Pkg; Pkg.Registry.add(RegistrySpec(url="https://github.com/JuliaMolSim/MolSim"))'
+
       - name: "Run CompatHelper"
         run: |
           import CompatHelper
