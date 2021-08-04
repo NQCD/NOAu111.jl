@@ -23,6 +23,8 @@ jobs:
 
       - name: "Run CompatHelper"
         run: |
+          import Pkg
+          Pkg.Registry.status()
           import CompatHelper
           CompatHelper.main()
         shell: julia --color=yes {0}
