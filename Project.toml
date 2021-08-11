@@ -15,14 +15,14 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-NonadiabaticModels = "0.4"
-JuLIP = "0.12"
-NonadiabaticDynamicsBase = "0.1"
-Zygote = "0.6"
 DataStructures = "0.18"
-Unitful = "1"
-UnPack = "1"
+JuLIP = "0.12, 0.13"
+NonadiabaticDynamicsBase = "0.1"
+NonadiabaticModels = "0.4"
 StaticArrays = "1"
+UnPack = "1"
+Unitful = "1"
+Zygote = "0.6"
 julia = "1"
 
 [extras]
