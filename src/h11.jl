@@ -1,6 +1,7 @@
 
-using UnPack
-using Zygote
+using UnPack: @unpack
+using Zygote: gradient
+using ChainRulesCore: NoTangent
 
 struct H11{I,A,V} <: JuLIP.AbstractCalculator
     image::I
@@ -143,14 +144,14 @@ This is the slowest part of the code, a hand-coded derivative would be faster,
 or possibly a different autodiff package.
 """
 function JuLIP.evaluate_d!(dEs, tmp, V::AuNCoupling, Rs, Zs, z0)
-    grad = Zygote.gradient(x -> JuLIP.evaluate!(tmp, V, x, Zs, z0), Rs)[1]
+    grad = gradient(x -> JuLIP.evaluate!(tmp, V, x, Zs, z0), Rs)[1]
     if grad === nothing
         for i=1:length(dEs)
             dEs[i] = zero(dEs[i])
         end
     else
         for i=1:length(grad)
-            if grad[i] === nothing
+            if (grad[i] === nothing) || (grad[i] == NoTangent())
                 dEs[i] = zero(dEs[i])
             else
                 dEs[i] = grad[i]
