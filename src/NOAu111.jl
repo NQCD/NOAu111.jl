@@ -1,12 +1,12 @@
 module NOAu111
 
-import JuLIP
-import JuLIP.Potentials: z2i, ZList
-using StaticArrays
+using JuLIP: JuLIP
+using JuLIP.Potentials: z2i, ZList
+using StaticArrays: SMatrix, SVector
 using LinearAlgebra: norm, Hermitian, dot
 using DataStructures: DefaultDict
-using NonadiabaticDynamicsBase
-using NonadiabaticModels
+using NonadiabaticDynamicsBase: au_to_ang, eV_per_ang_to_au, eV_to_au
+using NonadiabaticModels: NonadiabaticModels, DiabaticModels
 
 export NOAu
 
@@ -15,7 +15,7 @@ include("au_au.jl")
 include("diabatic_elements.jl")
 include("h11.jl")
 
-struct NOAu{V1,V2,V3,V4,V5,A} <: DiabaticModel
+struct NOAu{V1,V2,V3,V4,V5,A} <: DiabaticModels.DiabaticModel
     n_states::Int
     H00::V1
     H11::V2
@@ -26,6 +26,8 @@ struct NOAu{V1,V2,V3,V4,V5,A} <: DiabaticModel
     Nindex::Int
     Oindex::Int
 end
+
+NonadiabaticModels.nstates(::NOAu) = 2
 
 NOAu(jatoms, Nindex, Oindex) = NOAu(2, H00(), H11(jatoms), H01(), AuAu(), image(D, C, zimage), jatoms, Nindex, Oindex)
 
