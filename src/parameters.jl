@@ -1,4 +1,4 @@
-using Unitful
+using Unitful: @u_str, ustrip, uconvert, Unitful
 
 const energy_unit = u"kJ/mol" / Unitful.Na
 
