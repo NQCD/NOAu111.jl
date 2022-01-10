@@ -3,8 +3,8 @@ using Test
 using JuLIP
 using PyCall
 using ASE
-using NonadiabaticDynamicsBase
-using NonadiabaticModels
+using NQCBase
+using NQCModels
 using Unitful, UnitfulAtomic
 
 build = pyimport("ase.build")
@@ -31,7 +31,7 @@ end
 
 @testset "Final model" begin
     R = austrip.(Matrix(hcat(at.X...))u"Å")
-    c = NonadiabaticDynamicsBase.PeriodicCell(austrip.(cell(at)' .* u"Å"))
+    c = NQCBase.PeriodicCell(austrip.(cell(at)' .* u"Å"))
 
     model = NOAu(chemical_symbols(at), c, R)
 

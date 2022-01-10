@@ -1,7 +1,7 @@
 using NOAu111
 using PyCall
-using NonadiabaticDynamicsBase
-using NonadiabaticModels
+using NQCBase
+using NQCModels
 using NonadiabaticMolecularDynamics
 using UnitfulAtomic, Unitful
 using CairoMakie

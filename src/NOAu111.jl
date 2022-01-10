@@ -5,8 +5,8 @@ using JuLIP.Potentials: z2i, ZList
 using StaticArrays: SMatrix, SVector
 using LinearAlgebra: norm, Hermitian, dot
 using DataStructures: DefaultDict
-using NonadiabaticDynamicsBase: au_to_ang, eV_per_ang_to_au, eV_to_au
-using NonadiabaticModels: NonadiabaticModels, DiabaticModels
+using NQCBase: au_to_ang, eV_per_ang_to_au, eV_to_au
+using NQCModels: NQCModels, DiabaticModels
 
 export NOAu
 
@@ -27,7 +27,7 @@ struct NOAu{V1,V2,V3,V4,V5,A} <: DiabaticModels.DiabaticModel
     Oindex::Int
 end
 
-NonadiabaticModels.nstates(::NOAu) = 2
+NQCModels.nstates(::NOAu) = 2
 
 NOAu(jatoms, Nindex, Oindex) = NOAu(2, H00(), H11(jatoms), H01(), AuAu(), image(D, C, zimage), jatoms, Nindex, Oindex)
 
@@ -46,7 +46,7 @@ function NOAu(symbols::AbstractVector{Symbol}, cell, R)
     NOAu(jatoms, Nindex, Oindex)
 end
 
-function NonadiabaticModels.potential(model::NOAu, R::AbstractMatrix)
+function NQCModels.potential(model::NOAu, R::AbstractMatrix)
 
     JuLIP.set_positions!(model.atoms, au_to_ang.(R))
     Au = eV_to_au(JuLIP.energy(model.AuAu, model.atoms))
@@ -57,7 +57,7 @@ function NonadiabaticModels.potential(model::NOAu, R::AbstractMatrix)
     return Hermitian(SMatrix{2,2}(V11, V12, V12, V22))
 end
 
-function NonadiabaticModels.derivative!(model::NOAu, D::AbstractMatrix{<:Hermitian}, R::AbstractMatrix)
+function NQCModels.derivative!(model::NOAu, D::AbstractMatrix{<:Hermitian}, R::AbstractMatrix)
 
     JuLIP.set_positions!(model.atoms, au_to_ang.(R))
     Au = -JuLIP.forces(model.AuAu, model.atoms)
